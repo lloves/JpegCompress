@@ -16,7 +16,7 @@ Android自带的jpeg的压缩：一种是降采样率压缩，另外一种是质
 
 bitmap.compress(Bitmap.CompressFormat.JPEG, 20, new FileOutputStream("sdcard/result.jpg"));
 
-Android上调用Jpeg-tirbo提升jpeg压缩比不高、压缩效率还低，所以实现基于libjpeg的方式，大致流程如下：
+Android上原生的方式提升jpeg压缩比不高、压缩效率还低，所以实现基于libjpeg的方式，大致流程如下：
 1. Android java层传递Bitmap到jni层，jni层把bitmap图像去除a通道，转成原始的rgb格式保存；
 2. 调用libjpeg的功能，指定压缩比（quality），实现rgb压缩为jpeg格式图像保存；
 
