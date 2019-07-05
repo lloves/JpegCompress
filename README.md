@@ -10,6 +10,8 @@ Android自带的jpeg的压缩：一种是降采样率压缩，另外一种是质
  o.inSampleSize=自己计算
  o.inJustDecodeBounds = false;
  BitmapFactory.decodeFile(path, o);
+
+
 第二种:
 
 bitmap.compress(Bitmap.CompressFormat.JPEG, 20, new FileOutputStream("sdcard/result.jpg"));
