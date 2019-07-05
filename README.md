@@ -1,0 +1,2 @@
+# JpegCompress
+Android上调用Jpeg-tirbo提升jpeg压缩效率，自带的java层Bitmap的太慢了
