@@ -12,6 +12,17 @@
 #define LOGW(FORMAT,...) __android_log_print(ANDROID_LOG_WARN,"imagecompress",FORMAT,##__VA_ARGS__);
 #define LOGD(FORMAT,...) __android_log_print(ANDROID_LOG_DEBUG,"imagecompress",FORMAT,##__VA_ARGS__);
 
+
+typedef struct {
+    int width;
+    int height;
+    int channels;
+    BYTE* imageData;
+
+}EvBitMap;
+
+EvBitMap* imscale(EvBitMap* bmpImg,double dy,double dx);
+
 typedef u_int8_t BYTE;
 struct my_error_mgr {
     struct jpeg_error_mgr pub;
@@ -34,10 +45,10 @@ my_error_exit(j_common_ptr
 /**
  * 压缩的数据    宽  高  压缩质量  存放路径    是否使用哈夫曼算法完成压缩
  */
-int generateJPEG(BYTE *data, int w, int h, jint quality, const char *name, boolean optimize);
+int generateJPEG(BYTE *data, double dy, double dx, int w, int h, jint quality, const char *name, boolean optimize);
 
 
-int generateJPEG(BYTE *data, int w, int h, int quality, const char *name, boolean optimize) {
+int generateJPEG(BYTE *data, double dy, double dx, int w, int h, int quality, const char *name, boolean optimize) {
     int nComponent = 3;
     struct jpeg_compress_struct jcs;
     //自定义的error
@@ -56,11 +67,20 @@ int generateJPEG(BYTE *data, int w, int h, int quality, const char *name, boolea
     if (f == NULL) {
         return 0;
     }
+		struct EvBitMap *image;
+		image = (EvBitMap)malloc(sizeof(EvBitMap));
+		image->width = w;
+		image->height = h;
+		image->channels = 3;
+		image->imageData = data;
+		
+		struct EvBitMap *tmpImage = imscale(image, dy, dx);
+		
 
     //指定压缩数据源
     jpeg_stdio_dest(&jcs, f);
-    jcs.image_width = w;
-    jcs.image_height = h;
+    jcs.image_width = tmpImage->width;
+    jcs.image_height = tmpImage->height;
 
     jcs.arith_code = false;
     jcs.input_components = nComponent;
@@ -77,7 +97,7 @@ int generateJPEG(BYTE *data, int w, int h, int quality, const char *name, boolea
     int row_stride;
     row_stride = jcs.image_width * nComponent;
     while (jcs.next_scanline < jcs.image_height) {
-        row_point[0] = &data[jcs.next_scanline * row_stride];
+        row_point[0] = &(tmpImage->imageData[jcs.next_scanline * row_stride]);
         jpeg_write_scanlines(&jcs, row_point, 1);
     }
 
@@ -90,6 +110,11 @@ int generateJPEG(BYTE *data, int w, int h, int quality, const char *name, boolea
     jpeg_finish_compress(&jcs);
     //释放资源
     jpeg_destroy_compress(&jcs);
+    //释放中间资源
+    free((void *)tmpImage->imageData);
+    free(tmpImage)
+    free(image);
+    
     fclose(f);
     return 1;
 }
@@ -100,7 +125,7 @@ int generateJPEG(BYTE *data, int w, int h, int quality, const char *name, boolea
  * Signature: (Ljava/lang/Object;ILjava/lang/String;B)I
  */
 JNIEXPORT jint JNICALL Java_github_com_stoneimagecompress_util_ImageUtil_compressBitmap
-        (JNIEnv * env, jclass clazz, jobject bitmap, jint quality, jstring dstFile,jboolean optimize){
+        (JNIEnv * env, jclass clazz, jobject bitmap, jint quality, jdouble dy, jdouble dx, jstring dstFile,jboolean optimize){
 
     LOGE("%s", "===>Java_github_com_androidadvanced_1ndk_util_ImageUtil_compressBitmap");
     int ret;
@@ -175,7 +200,7 @@ JNIEXPORT jint JNICALL Java_github_com_stoneimagecompress_util_ImageUtil_compres
     const char* file_path = env->GetStringUTFChars(dstFile,NULL);
 
     //压缩图片
-    ret = generateJPEG(tmpData,w,h,quality,file_path,optimize);
+    ret = generateJPEG(tmpData, dy, dx, w, h, quality, file_path, optimize);
 
     //释放内存
     free((void *) tmpData);
@@ -187,4 +212,92 @@ JNIEXPORT jint JNICALL Java_github_com_stoneimagecompress_util_ImageUtil_compres
     env->CallVoidMethod(bitmap,jRecycleMethodId,NULL);
 
     return ret;
+}
+
+
+
+
+/*
+ * dy: height缩放比  dx：width缩放比
+ */
+EvBitMap* imscale(EvBitMap* bmpImg,double dy,double dx)
+{
+	 //图片缩放处理
+	EvBitMap* bmpImgSca;
+ 	int width = 0;
+  int height = 0;
+	int channels = 3;
+    int step = 0;
+	int Sca_step = 0;
+    int i, j, k;
+	width = bmpImg->width;
+	height = bmpImg->height;
+	channels = bmpImg->channels;
+    int pre_i,pre_j,after_i,after_j;//缩放前对应的像素点坐标
+	//初始化缩放后图片的信息
+	bmpImgSca = (EvBitMap*)malloc(sizeof(EvBitMap));
+	bmpImgSca->channels = channels;
+	bmpImgSca->width = (int)(bmpImg->width*dy + 0.5);
+	bmpImgSca->height = (int)(bmpImg->height*dx + 0.5);
+	step = channels * width;
+	Sca_step = channels * bmpImgSca->width;
+	bmpImgSca->imageData = (BYTE*)malloc(sizeof(BYTE)*bmpImgSca->width*bmpImgSca->height*channels);
+
+    if (channels == 1)
+    {
+		//初始化缩放图像
+		for (i=0; i<bmpImgSca->height; i++)
+		{
+			for (j=0; j<bmpImgSca->width; j++)
+			{
+				bmpImgSca->imageData[(bmpImgSca->height-1-i)*Sca_step+j] = 0;
+			}
+		}
+		//坐标变换
+		for(i = 0;i < bmpImgSca->height;i++)
+		{
+			for(j = 0;j < bmpImgSca->width;j++)
+			{
+				after_i = i;
+				after_j = j;
+				pre_i = (int)(after_i / dx + 0);
+				pre_j = (int)(after_j / dy + 0);
+				if(pre_i >= 0 && pre_i < height && pre_j >= 0 && pre_j < width)//在原图范围内
+				{
+					bmpImgSca->imageData[i * Sca_step + j] = bmpImg->imageData[pre_i * step + pre_j];
+				}
+			}
+		}
+    }
+    else if (channels == 3)
+    {
+		//初始化缩放图像
+		for(i=0; i<bmpImgSca->height; i++)
+		{
+			for(j=0; j<bmpImgSca->width; j++)
+			{
+				for(k=0; k<3; k++)
+                {
+					bmpImgSca->imageData[(bmpImgSca->height-1-i)*Sca_step+j*3+k] = 0;
+                }
+			}
+		}
+		//坐标变换
+		for(i = 0;i < bmpImgSca->height;i++)
+		{
+			for(j = 0;j < bmpImgSca->width;j++)
+			{
+				after_i = i;
+				after_j = j;
+				pre_i = (int)(after_i / dx + 0.5);
+				pre_j = (int)(after_j / dy + 0.5);
+				if(pre_i >= 0 && pre_i < height && pre_j >= 0 && pre_j < width)//在原图范围内
+					for(k=0; k<3; k++)
+					{
+						bmpImgSca->imageData[i * Sca_step + j*3 +k] = bmpImg->imageData[pre_i * step + pre_j*3 + k];
+					}
+			}
+		}
+    }
+	return bmpImgSca;
 }
