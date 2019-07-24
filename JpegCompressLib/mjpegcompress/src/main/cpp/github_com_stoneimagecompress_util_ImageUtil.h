@@ -15,7 +15,7 @@ extern "C" {
  * Signature: (Ljava/lang/Object;ILjava/lang/String;Z)I
  */
 JNIEXPORT jint JNICALL Java_github_com_stoneimagecompress_util_ImageUtil_compressBitmap
-  (JNIEnv *, jclass, jobject, jint, jstring, jboolean);
+  (JNIEnv *, jclass, jobject, jint,  jdouble, jdouble, jstring, jboolean);
 
 #ifdef __cplusplus
 }
