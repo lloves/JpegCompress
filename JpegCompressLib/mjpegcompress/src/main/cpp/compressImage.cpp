@@ -12,6 +12,7 @@
 #define LOGW(FORMAT,...) __android_log_print(ANDROID_LOG_WARN,"imagecompress",FORMAT,##__VA_ARGS__);
 #define LOGD(FORMAT,...) __android_log_print(ANDROID_LOG_DEBUG,"imagecompress",FORMAT,##__VA_ARGS__);
 
+typedef u_int8_t BYTE;
 
 typedef struct {
     int width;
@@ -23,7 +24,6 @@ typedef struct {
 
 EvBitMap* imscale(EvBitMap* bmpImg,double dy,double dx);
 
-typedef u_int8_t BYTE;
 struct my_error_mgr {
     struct jpeg_error_mgr pub;
     jmp_buf setjmp_buffer;
@@ -67,15 +67,15 @@ int generateJPEG(BYTE *data, double dy, double dx, int w, int h, int quality, co
     if (f == NULL) {
         return 0;
     }
-		struct EvBitMap *image;
-		image = (EvBitMap)malloc(sizeof(EvBitMap));
-		image->width = w;
-		image->height = h;
-		image->channels = 3;
-		image->imageData = data;
-		
-		struct EvBitMap *tmpImage = imscale(image, dy, dx);
-		
+        EvBitMap *image;
+        image = (EvBitMap *)malloc(sizeof(EvBitMap));
+        image->width = w;
+        image->height = h;
+        image->channels = 3;
+        image->imageData = data;
+        
+        EvBitMap *tmpImage = imscale(image, dy, dx);
+        
 
     //指定压缩数据源
     jpeg_stdio_dest(&jcs, f);
@@ -112,7 +112,7 @@ int generateJPEG(BYTE *data, double dy, double dx, int w, int h, int quality, co
     jpeg_destroy_compress(&jcs);
     //释放中间资源
     free((void *)tmpImage->imageData);
-    free(tmpImage)
+    free(tmpImage);
     free(image);
     
     fclose(f);
@@ -125,7 +125,8 @@ int generateJPEG(BYTE *data, double dy, double dx, int w, int h, int quality, co
  * Signature: (Ljava/lang/Object;ILjava/lang/String;B)I
  */
 JNIEXPORT jint JNICALL Java_github_com_stoneimagecompress_util_ImageUtil_compressBitmap
-        (JNIEnv * env, jclass clazz, jobject bitmap, jint quality, jdouble dy, jdouble dx, jstring dstFile,jboolean optimize){
+        (JNIEnv * env, jclass clazz, jobject bitmap, jint quality, jdouble dy, jdouble dx, jstring dstFile,jboolean 
+optimize){
 
     LOGE("%s", "===>Java_github_com_androidadvanced_1ndk_util_ImageUtil_compressBitmap");
     int ret;
@@ -222,82 +223,83 @@ JNIEXPORT jint JNICALL Java_github_com_stoneimagecompress_util_ImageUtil_compres
  */
 EvBitMap* imscale(EvBitMap* bmpImg,double dy,double dx)
 {
-	 //图片缩放处理
-	EvBitMap* bmpImgSca;
- 	int width = 0;
+     //图片缩放处理
+    EvBitMap* bmpImgSca;
+    int width = 0;
   int height = 0;
-	int channels = 3;
+    int channels = 3;
     int step = 0;
-	int Sca_step = 0;
+    int Sca_step = 0;
     int i, j, k;
-	width = bmpImg->width;
-	height = bmpImg->height;
-	channels = bmpImg->channels;
+    width = bmpImg->width;
+    height = bmpImg->height;
+    channels = bmpImg->channels;
     int pre_i,pre_j,after_i,after_j;//缩放前对应的像素点坐标
-	//初始化缩放后图片的信息
-	bmpImgSca = (EvBitMap*)malloc(sizeof(EvBitMap));
-	bmpImgSca->channels = channels;
-	bmpImgSca->width = (int)(bmpImg->width*dy + 0.5);
-	bmpImgSca->height = (int)(bmpImg->height*dx + 0.5);
-	step = channels * width;
-	Sca_step = channels * bmpImgSca->width;
-	bmpImgSca->imageData = (BYTE*)malloc(sizeof(BYTE)*bmpImgSca->width*bmpImgSca->height*channels);
+    //初始化缩放后图片的信息
+    bmpImgSca = (EvBitMap*)malloc(sizeof(EvBitMap));
+    bmpImgSca->channels = channels;
+    bmpImgSca->width = (int)(bmpImg->width*dy + 0.5);
+    bmpImgSca->height = (int)(bmpImg->height*dx + 0.5);
+    step = channels * width;
+    Sca_step = channels * bmpImgSca->width;
+    bmpImgSca->imageData = (BYTE*)malloc(sizeof(BYTE)*bmpImgSca->width*bmpImgSca->height*channels);
 
     if (channels == 1)
     {
-		//初始化缩放图像
-		for (i=0; i<bmpImgSca->height; i++)
-		{
-			for (j=0; j<bmpImgSca->width; j++)
-			{
-				bmpImgSca->imageData[(bmpImgSca->height-1-i)*Sca_step+j] = 0;
-			}
-		}
-		//坐标变换
-		for(i = 0;i < bmpImgSca->height;i++)
-		{
-			for(j = 0;j < bmpImgSca->width;j++)
-			{
-				after_i = i;
-				after_j = j;
-				pre_i = (int)(after_i / dx + 0);
-				pre_j = (int)(after_j / dy + 0);
-				if(pre_i >= 0 && pre_i < height && pre_j >= 0 && pre_j < width)//在原图范围内
-				{
-					bmpImgSca->imageData[i * Sca_step + j] = bmpImg->imageData[pre_i * step + pre_j];
-				}
-			}
-		}
+        //初始化缩放图像
+        for (i=0; i<bmpImgSca->height; i++)
+        {
+            for (j=0; j<bmpImgSca->width; j++)
+            {
+                bmpImgSca->imageData[(bmpImgSca->height-1-i)*Sca_step+j] = 0;
+            }
+        }
+        //坐标变换
+        for(i = 0;i < bmpImgSca->height;i++)
+        {
+            for(j = 0;j < bmpImgSca->width;j++)
+            {
+                after_i = i;
+                after_j = j;
+                pre_i = (int)(after_i / dx + 0);
+                pre_j = (int)(after_j / dy + 0);
+                if(pre_i >= 0 && pre_i < height && pre_j >= 0 && pre_j < width)//在原图范围内
+                {
+                    bmpImgSca->imageData[i * Sca_step + j] = bmpImg->imageData[pre_i * step + pre_j];
+                }
+            }
+        }
     }
     else if (channels == 3)
     {
-		//初始化缩放图像
-		for(i=0; i<bmpImgSca->height; i++)
-		{
-			for(j=0; j<bmpImgSca->width; j++)
-			{
-				for(k=0; k<3; k++)
+        //初始化缩放图像
+        for(i=0; i<bmpImgSca->height; i++)
+        {
+            for(j=0; j<bmpImgSca->width; j++)
+            {
+                for(k=0; k<3; k++)
                 {
-					bmpImgSca->imageData[(bmpImgSca->height-1-i)*Sca_step+j*3+k] = 0;
+                    bmpImgSca->imageData[(bmpImgSca->height-1-i)*Sca_step+j*3+k] = 0;
                 }
-			}
-		}
-		//坐标变换
-		for(i = 0;i < bmpImgSca->height;i++)
-		{
-			for(j = 0;j < bmpImgSca->width;j++)
-			{
-				after_i = i;
-				after_j = j;
-				pre_i = (int)(after_i / dx + 0.5);
-				pre_j = (int)(after_j / dy + 0.5);
-				if(pre_i >= 0 && pre_i < height && pre_j >= 0 && pre_j < width)//在原图范围内
-					for(k=0; k<3; k++)
-					{
-						bmpImgSca->imageData[i * Sca_step + j*3 +k] = bmpImg->imageData[pre_i * step + pre_j*3 + k];
-					}
-			}
-		}
+            }
+        }
+        //坐标变换
+        for(i = 0;i < bmpImgSca->height;i++)
+        {
+            for(j = 0;j < bmpImgSca->width;j++)
+            {
+                after_i = i;
+                after_j = j;
+                pre_i = (int)(after_i / dx + 0.5);
+                pre_j = (int)(after_j / dy + 0.5);
+                if(pre_i >= 0 && pre_i < height && pre_j >= 0 && pre_j < width)//在原图范围内
+                    for(k=0; k<3; k++)
+                    {
+                        bmpImgSca->imageData[i * Sca_step + j*3 +k] = bmpImg->imageData[pre_i * step + pre_j*3 + k];
+                    }
+            }
+        }
     }
-	return bmpImgSca;
+    return bmpImgSca;
 }
+

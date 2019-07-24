@@ -11,14 +11,14 @@ public class ImageUtil {
     }
 
 
-    public static boolean compressImage(Bitmap bitmap,int quality,String dstFile,boolean  optimize){
+    public static boolean compressImage(Bitmap bitmap, int quality, double dy, double dx, String dstFile, boolean  optimize){
 
-        int ret = compressBitmap( bitmap, quality, dstFile,  optimize);
+        int ret = compressBitmap( bitmap, quality, dy, dx, dstFile,  optimize);
 
         return  ret==1;
     }
 
-    public static native int compressBitmap(Bitmap bitmap, int quality, String dstFile,boolean  optimize);
+    public static native int compressBitmap(Bitmap bitmap, int quality, double dy, double dx, String dstFile, boolean  optimize);
 
     /**
      *
